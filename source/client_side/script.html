@@ -1,0 +1,180 @@
+  <!--
+ * Copyright 2014 Google Inc. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ -->
+
+<script>
+function getEmail() {
+   return new Promise((resolve, reject) => {
+     google.script.run
+       .withSuccessHandler(function(result) {
+       resolve(result)
+         })
+       .withFailureHandler(function(error) {
+       reject(error)
+         })
+       .getUserEmail(); // Server side call of getUserEmail function -- Will return current session user's email
+   });
+}
+</script>
+
+<script>
+function buildSelection() {
+  let key = "YOUR_EVENT_KEY"; // Key for script properties
+  const eventEle = document.getElementById("main-event-selection")
+   const eventObjects = new Promise((resolve, reject) => {
+     google.script.run
+       .withSuccessHandler(function(result) {
+       resolve(result)
+         })
+       .withFailureHandler(function(error) {
+       reject(error)
+         })
+       .getEventInfo(key); // Server side call of getEventInfo function
+   });
+   
+   eventObjects.then((result) => {
+     // Parse the returned JSON
+     if(typeof result === "string") {
+       result = JSON.parse(result)
+     }
+     for(let r = 0; r < result.length; r++) {
+       let input = document.createElement("input")
+       let label = document.createElement("label")
+       let divEle = document.createElement("div");
+       // Build the radio buttons for the user to select the event to attend
+       input.setAttribute("type", "radio")
+       input.setAttribute("value",`${result[r].date}-${result[r].time}`);
+       input.setAttribute("name","event-options");
+       input.setAttribute("data-event",result[r].eventId);
+       // Build the labels for each radio button
+       label.setAttribute("for",`${result[r].date}-${result[r].time}`);
+       label.setAttribute("id",`${result[r].date}-${result[r].time} label`);
+       label.innerText = `Date: ${result[r].date} -- Time: ${result[r].time}`;
+       // Places each group of input and label in a div container and append to the event-main element
+       divEle.setAttribute("class", "input-container")
+       divEle.appendChild(input);
+       divEle.appendChild(label);
+       eventEle.appendChild(divEle)
+     }
+     
+   }).catch((error) => {
+     errorDiv.innerText = "Failed to load event info, please contact <ADMIN_GROUP>";
+     console.log(`Error - ${error}`)
+   })
+}
+</script>
+
+<script>
+window.onload = function() {
+  const email = getEmail() || "Please provide your email";
+  const emailInput = document.getElementById("user-email");
+  // Build the event info inputs and set the user's email to the input
+  buildSelection();
+  email.then((result) => {
+    emailInput.value = result;
+  }).catch((error) => {
+    emailInput.value = email;
+    console.log(`Error - ${error}`)
+  });
+}
+
+</script>
+<script>
+// Will erase the status error message 
+function eraseStatus() {
+  errorDiv.innerText = "";
+}
+
+// Resolves after x seconds
+function resolveAfterSeconds(x) {
+  setTimeout((x) => { 
+    eraseStatus() 
+  }, x * 1000);
+}
+</script>
+
+<script>
+const submitButton = document.getElementById("send-invite"); // Global
+const errorDiv = document.getElementById("response-error");
+const successDiv = document.getElementById("response-success");
+// Add 'click' even to sort button
+submitButton.addEventListener("click", function(e) {
+  e.preventDefault();
+  //      console.log(e)
+  const selectedVal = document.querySelector('input[name="event-options"]:checked') || undefined;
+  // grab the selected radio button or inform the user to select a radio input button
+  if(!selectedVal) {
+    errorDiv.innerText = "Please select an option and try again";
+    resolveAfterSeconds(4.25);
+    return;
+  }
+  // user email from input
+  const userEmail = document.getElementById("user-email").value;
+//  console.log(userEmail)
+  
+  const attrs = selectedVal.attributes;
+  const eventId = attrs.getNamedItem("data-event").value;
+  const validEmail = validation(userEmail)
+  let promise;
+  // Validate user email against function and ensure they're apart of the domain
+  if(validEmail) {
+    // If valid, begin sendding them the invite for the event
+    promise = new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          resolve(result)
+        })
+        .withFailureHandler(function(error) {
+          reject(error)
+        })
+        .sendInvite(userEmail, eventId); // Server side call of sendInvite function
+    })
+  } else {
+    errorDiv.innerText = "Please ensure the provided email is of <DOMAIN> domain";
+    resolveAfterSeconds(4.25);
+    return;
+  }
+  
+   promise.then((message) => {
+//     console.log(message)  
+     // If event invitation was successful, will alert the user
+     successDiv.innerText = message + ". You can close the application after you add the event"
+     const inviteButon = document.getElementById("calendar-invite-button");
+     let linkEle = document.createElement("a")
+     let imgEle = document.createElement("img")
+     imgEle.setAttribute("border", 0)
+     imgEle.setAttribute("src", "https://www.google.com/calendar/images/ext/gc_button1_en.gif")
+     linkEle.setAttribute("target", "_blank");
+//     console.log(eventId)
+     // Creates a calendar event button to ensure it's added to their calendar with the appropiate info
+     linkEle.setAttribute("href", "https://calendar.google.com/event?action=TEMPLATE&tmeid="+ eventId +"&tmsrc=<EMAIL_SOURCE_FOR_CALENDAR>");
+     linkEle.appendChild(imgEle);
+     inviteButon.appendChild(linkEle)
+  }).catch((error) => {
+    console.log(error)
+    errorDiv.innerText = error;
+    resolveAfterSeconds(4.25);
+    return;
+  })
+})
+
+  // Ensure the user's email belongs to the domain 
+function validation(email) {
+  if(typeof email === "string") {
+    return email.includes("<your_domain>");
+  }
+  return false;
+}
+</script>
