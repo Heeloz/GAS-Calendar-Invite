@@ -20,16 +20,3 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename)
   .getContent();
 }
-
-// Formats a value based on its type. "number" => parsed as an int with no decimals. "string" => change to lowercase and remove all spaces
-function formatValue(value) {
-  const type = (typeof value)
-  switch(type) {
-    case "number":
-      return Number.parseInt(value).toFixed(0);
-      break;
-    case "string":
-      return value.toLowerCase().replace(REGEX_SPACE, '').trim();      
-      break;    
-  }
-}
