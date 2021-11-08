@@ -20,3 +20,15 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename)
   .getContent();
 }
+
+function formatValue(value) {
+  const type = (typeof value)
+  switch(type) {
+    case "number":
+      return Number.parseInt(value).toFixed(0);
+      break;
+    case "string":
+      return value.toLowerCase().replace(REGEX_SPACE, '').trim();      
+      break;    
+  }
+}
