@@ -151,6 +151,7 @@ submitButton.addEventListener("click", function(e) {
 //     console.log(message)  
      // If event invitation was successful, will alert the user
      successDiv.innerText = message + ". You can close the application after you add the event"
+     /* Deprecated and no longer needed since Calendar API will handle invites
      const inviteButon = document.getElementById("calendar-invite-button");
      let linkEle = document.createElement("a")
      let imgEle = document.createElement("img")
@@ -162,6 +163,7 @@ submitButton.addEventListener("click", function(e) {
      linkEle.setAttribute("href", "https://calendar.google.com/event?action=TEMPLATE&tmeid="+ eventId +"&tmsrc=<EMAIL_SOURCE_FOR_CALENDAR>");
      linkEle.appendChild(imgEle);
      inviteButon.appendChild(linkEle)
+     */
   }).catch((error) => {
     console.log(error)
     errorDiv.innerText = error;
