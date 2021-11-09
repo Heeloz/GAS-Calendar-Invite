@@ -24,15 +24,22 @@ function sendInvite(user, eventId) {
       const blobString = Utilities.newBlob(decode).getDataAsString();
       // split by space and first element will be the calUId
       const strSplit = blobString.split(" ");
-      // CALENDAR_ID is the global ID specified in "globals"
-      const calendar = CalendarApp.getCalendarById(CALENDAR_ID); 
-      const event = calendar.getEventById(`${strSplit[0]}@google.com`)
-//      Logger.log(event)
+      // second element of strSplit will contain the calendarId
+      const calendar = Calendar.CalendarList.get(strSplit[1]);
+//      console.log(calendar.id);
+      const event = Calendar.Events.get(calendar.id, strSplit[0]);
+//      console.log(event)
+      let attendees = event.attendees ? event.attendees : event.attendees = [];
+      attendees.push({email: user});
+//      console.log(attendees)
+      const resource = { attendees: attendees };
+      const args = { sendUpdates: "all" };
       // add user to event and return the promise 
-      event.addGuest(user)
-      resolve("Successfully added to event, please click the Google Calendar button below to add the event to your calendar")
+      // Patch will send a calendar invite to the newly added user
+      Calendar.Events.patch(resource, calendar.id, event.id, args);  
+      resolve("Successfully added to event, please ensure to check your email for the notification")
     } catch(err) {
-      Logger.log(err)
+      console.error(err)
       reject(`Failed to locate event`)
     }
   })
